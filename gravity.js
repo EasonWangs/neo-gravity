@@ -62,10 +62,11 @@ const shoot = (x, y, a, t) => {
 		// 处理左右边界碰撞
 		if (position.x < 0 || position.x > boundaries.width) {
 			position.x = position.x < 0 ? 0 : boundaries.width;
-			// 使用原始计算方式
-			physics.velocityX = (Math.abs(physics.velocityX) - physics.horizontalLoss < 0) ? 
+			
+			const remainingSpeed = Math.abs(physics.velocityX) - physics.horizontalLoss;
+			physics.velocityX = remainingSpeed < 0 ? 
 				0 : 
-				-Math.sign(physics.velocityX) * (Math.abs(physics.velocityX) - physics.horizontalLoss);
+				-Math.sign(physics.velocityX) * remainingSpeed;
 		}
 
 		// 更新球的位置
