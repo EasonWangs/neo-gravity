@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>模拟引力环境下的撞击、摩擦、落体运动</title>
+<style type="text/css">
+	*{padding:0;margin:0;}
+	html,body{height:100%;overflow:hidden;}
+	p{margin:2px;font-size:12px;}
+	label{display:inline-block;width:80px;text-align:right;}
+	input{width:80px;}
+	#fall{width:20px;font-size:0;height:20px;background:orange;position:absolute;top:50px;left:400px;border-radius:10px;-moz-border-radius:10px;-webkit-border-radius:10px;}
+</style>
+<script type="text/javascript" charset="utf-8" src="gravity.js"></script>
+</head>
+<body>
+<p><label>横向初速度：</label><input id="Vx" type="text" value="3" />px/ms</p>
+<p><label>纵向初速度：</label><input id="Vy" type="text" value="0" />px/ms</p>
+<p><label>重力加速度：</label><input id="a" type="text" value="0.01" />px/平方ms</p>
+<p><label>单位时间：</label><input id="t" type="text" value="10" />（记录运动的时间间隔）
+<p>(摩擦，碰撞的消耗并没有按公式进行计算，纯属于杜撰，是不符合规律的，仅仅是模拟。)</p>
+<p><button type="button"  onclick="demo()">演示</button> <button type="button"  onclick="$id('fall').style.cssText = 'top:50px;left:400px;'">重置(可拖动放置)</button></p>
+<div id="fall" onmousedown='drag(this,event)'>o</div>
+</body>
+<script type="text/javascript">
+const $id = id => document.getElementById(id);
+
+const demo = () => {
+	const params = {
+		x: $id('Vx').value,
+		y: $id('Vy').value,
+		a: $id('a').value,
+		t: $id('t').value
+	};
+	shoot(params.x, params.y, params.a, params.t);
+};
+
+const drag = (element, event) => {
+	event.preventDefault();
+	
+	const initialPos = {
+		x: element.offsetLeft,
+		y: element.offsetTop,
+		mouseX: event.clientX,
+		mouseY: event.clientY
+	};
+
+	const handleMouseMove = (e) => {
+		element.style.left = `${initialPos.x + e.clientX - initialPos.mouseX}px`;
+		element.style.top = `${initialPos.y + e.clientY - initialPos.mouseY}px`;
+	};
+
+	const handleMouseUp = () => {
+		document.removeEventListener('mousemove', handleMouseMove);
+		document.removeEventListener('mouseup', handleMouseUp);
+	};
+
+	document.addEventListener('mousemove', handleMouseMove);
+	document.addEventListener('mouseup', handleMouseUp);
+};
+</script>
+</html>
