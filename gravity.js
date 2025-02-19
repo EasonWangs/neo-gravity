@@ -1,5 +1,37 @@
 let animationId = null;
 let audioContext = null;
+let canvas = null;
+let ctx = null;
+let ballPosition = { x: 400, y: 50 };
+
+// 初始化 canvas
+function initCanvas() {
+	canvas = document.getElementById('canvas');
+	if (!canvas) return;
+	
+	ctx = canvas.getContext('2d');
+	resizeCanvas();
+	
+	// 绘制初始小球
+	drawBall(ballPosition.x, ballPosition.y);
+}
+
+// 设置canvas尺寸
+function resizeCanvas() {
+	if (!canvas) return;
+	canvas.width = window.innerWidth;
+	canvas.height = window.innerHeight;
+}
+
+// 绘制小球
+function drawBall(x, y) {
+	if (!ctx) return;
+	ctx.beginPath();
+	ctx.arc(x, y, 10, 0, Math.PI * 2);
+	ctx.fillStyle = 'orange';
+	ctx.fill();
+	ctx.closePath();
+}
 
 // 创建碰撞音效
 const createCollisionSound = () => {
@@ -78,84 +110,85 @@ const collisionFeedback = (intensity = 1) => {
 const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalLoss = "0.2") => {
 	// 如果已有动画正在运行，先停止它
 	if (animationId) {
-		clearInterval(animationId);
+		cancelAnimationFrame(animationId);
 	}
-
-	const ball = document.getElementById('fall');
-	if (!ball) return;
 
 	// 初始化物理参数
 	const physics = {
-		velocityX: parseFloat(x),      // 水平速度，正值向右，负值向左，单位：px/ms
-		velocityY: parseFloat(y),      // 垂直速度，正值向下，负值向上，单位：px/ms
-		gravity: parseFloat(a),        // 重力加速度，正值向下，单位：px/ms²
-		timeStep: parseInt(t),         // 时间步长，单位：ms
-		friction: parseFloat(friction),               // 底部摩擦系数，每次碰撞后的水平速度损耗
-		verticalLoss: parseFloat(verticalLoss),      // 垂直碰撞能量损失，每次碰撞后的垂直速度损耗
-		horizontalLoss: parseFloat(horizontalLoss)   // 水平碰撞能量损失，每次与墙壁碰撞后的水平速度损耗
-	};
-
-	let position = {
-		x: ball.offsetLeft,
-		y: ball.offsetTop
+		velocityX: parseFloat(x),
+		velocityY: parseFloat(y),
+		gravity: parseFloat(a),
+		timeStep: parseInt(t),
+		friction: parseFloat(friction),
+		verticalLoss: parseFloat(verticalLoss),
+		horizontalLoss: parseFloat(horizontalLoss)
 	};
 
 	const boundaries = {
-		width: document.documentElement.offsetWidth - ball.offsetWidth,
-		height: document.documentElement.offsetHeight - ball.offsetHeight
+		width: canvas.width - 20,  // 20是小球直径
+		height: canvas.height - 20
 	};
 
-	const updatePosition = () => {
-		// 更新位置
-		position.x += physics.velocityX * physics.timeStep;
-		position.y += physics.velocityY * physics.timeStep;
+	let lastTime = performance.now();
+
+	const updatePosition = (currentTime) => {
+		const deltaTime = currentTime - lastTime;
 		
-		// 重力影响
-		physics.velocityY += physics.gravity * physics.timeStep;
+		if (deltaTime >= physics.timeStep) {
+			// 清除画布
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
+			
+			// 更新位置
+			ballPosition.x += physics.velocityX * physics.timeStep;
+			ballPosition.y += physics.velocityY * physics.timeStep;
+			
+			// 重力影响
+			physics.velocityY += physics.gravity * physics.timeStep;
 
-		// 处理底部碰撞
-		if (position.y >= boundaries.height) {
-			position.y = boundaries.height;
-			
-			// 根据垂直速度计算碰撞强度
-			const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
-			collisionFeedback(intensity);
-			
-			// 处理水平摩擦
-			physics.velocityX = (Math.abs(physics.velocityX) - physics.friction < 0) ? 
-				0 : 
-				Math.sign(physics.velocityX) * (Math.abs(physics.velocityX) - physics.friction);
-			
-			// 处理垂直反弹
-			physics.velocityY = (Math.abs(physics.velocityY) - physics.verticalLoss < 0) ? 
-				0 : 
-				-(Math.abs(physics.velocityY) - physics.verticalLoss);
+			// 处理底部碰撞
+			if (ballPosition.y >= boundaries.height) {
+				ballPosition.y = boundaries.height;
+				
+				const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
+				collisionFeedback(intensity);
+				
+				physics.velocityX = (Math.abs(physics.velocityX) - physics.friction < 0) ? 
+					0 : 
+					Math.sign(physics.velocityX) * (Math.abs(physics.velocityX) - physics.friction);
+				
+				physics.velocityY = (Math.abs(physics.velocityY) - physics.verticalLoss < 0) ? 
+					0 : 
+					-(Math.abs(physics.velocityY) - physics.verticalLoss);
 
-			// 如果球停止运动，结束动画
-			if (physics.velocityX === 0 && physics.velocityY === 0) {
-				clearInterval(animationId);
-				return;
+				if (physics.velocityX === 0 && physics.velocityY === 0) {
+					cancelAnimationFrame(animationId);
+					// 在动画结束时绘制最后一帧
+					drawBall(ballPosition.x, ballPosition.y);
+					return;
+				}
 			}
-		}
 
-		// 处理左右边界碰撞
-		if (position.x < 0 || position.x > boundaries.width) {
-			position.x = position.x < 0 ? 0 : boundaries.width;
-			
-			// 根据水平速度计算碰撞强度
-			const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
-			collisionFeedback(intensity);
-			
-			const remainingSpeed = Math.abs(physics.velocityX) - physics.horizontalLoss;
-			physics.velocityX = remainingSpeed < 0 ? 
-				0 : 
-				-Math.sign(physics.velocityX) * remainingSpeed;
-		}
+			// 处理左右边界碰撞
+			if (ballPosition.x < 0 || ballPosition.x > boundaries.width) {
+				ballPosition.x = ballPosition.x < 0 ? 0 : boundaries.width;
+				
+				const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
+				collisionFeedback(intensity);
+				
+				const remainingSpeed = Math.abs(physics.velocityX) - physics.horizontalLoss;
+				physics.velocityX = remainingSpeed < 0 ? 
+					0 : 
+					-Math.sign(physics.velocityX) * remainingSpeed;
+			}
 
-		// 更新球的位置
-		ball.style.left = `${position.x}px`;
-		ball.style.top = `${position.y}px`;
+			// 绘制小球
+			drawBall(ballPosition.x, ballPosition.y);
+			
+			lastTime = currentTime;
+		}
+		
+		animationId = requestAnimationFrame(updatePosition);
 	};
 
-	animationId = setInterval(updatePosition, physics.timeStep);
+	animationId = requestAnimationFrame(updatePosition);
 };

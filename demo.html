@@ -9,28 +9,42 @@
 	p{margin:2px;font-size:12px;}
 	label{display:inline-block;width:80px;text-align:right;}
 	input{width:80px;}
-	#fall{width:20px;font-size:0;height:20px;background:orange;position:absolute;top:50px;left:400px;border-radius:10px;-moz-border-radius:10px;-webkit-border-radius:10px;}
+	#canvas{
+		position: absolute;
+		top: 0;
+		left: 0;
+		background: #fff;
+	}
+	.controls {
+		position: absolute;
+		z-index: 1;
+		background: rgba(255,255,255,0.8);
+		padding: 10px;
+	}
 </style>
 <script type="text/javascript" charset="utf-8" src="gravity.js"></script>
 </head>
 <body>
-<p><label>横向初速度：</label><input id="Vx" type="text" value="3" />px/ms</p>
-<p><label>纵向初速度：</label><input id="Vy" type="text" value="0" />px/ms</p>
-<p><label>重力加速度：</label><input id="a" type="text" value="0.01" />px/平方ms</p>
-<p><label>单位时间：</label><input id="t" type="text" value="10" />（记录运动的时间间隔）
-<p><label>摩擦系数：</label><input id="friction" type="text" value="0.005" />（底部摩擦损耗）</p>
-<p><label>垂直损耗：</label><input id="verticalLoss" type="text" value="0.2" />（垂直碰撞能量损耗）</p>
-<p><label>水平损耗：</label><input id="horizontalLoss" type="text" value="0.2" />（水平碰撞能量损耗）</p>
-<p><label>启用反馈：</label><input id="feedback" type="checkbox" checked />（震动和声音）</p>
-<p>(摩擦，碰撞的消耗并没有按公式进行计算，纯属于杜撰，是不符合规律的，仅仅是模拟。)</p>
-<p>
-	<button type="button" id="demoBtn">演示</button>
-	<button type="button" id="resetBtn">重置(可拖动放置)</button>
-</p>
-<div id="fall" onmousedown='drag(this,event)'>o</div>
-</body>
+<div class="controls">
+	<p><label>横向初速度：</label><input id="Vx" type="text" value="3" />px/ms</p>
+	<p><label>纵向初速度：</label><input id="Vy" type="text" value="0" />px/ms</p>
+	<p><label>重力加速度：</label><input id="a" type="text" value="0.01" />px/平方ms</p>
+	<p><label>单位时间：</label><input id="t" type="text" value="10" />（记录运动的时间间隔）
+	<p><label>摩擦系数：</label><input id="friction" type="text" value="0.005" />（底部摩擦损耗）</p>
+	<p><label>垂直损耗：</label><input id="verticalLoss" type="text" value="0.2" />（垂直碰撞能量损耗）</p>
+	<p><label>水平损耗：</label><input id="horizontalLoss" type="text" value="0.2" />（水平碰撞能量损耗）</p>
+	<p><label>启用反馈：</label><input id="feedback" type="checkbox" checked />（震动和声音）</p>
+	<p>
+		<button type="button" id="demoBtn">演示</button>
+		<button type="button" id="resetBtn">重置</button>
+	</p>
+</div>
+<canvas id="canvas"></canvas>
 <script type="text/javascript">
 const $id = id => document.getElementById(id);
+
+// 初始化 canvas
+initCanvas();
 
 // 改为 var 声明以便全局访问
 var demo = () => {
@@ -59,40 +73,55 @@ var demo = () => {
 	shoot(params.x, params.y, params.a, params.t, params.friction, params.verticalLoss, params.horizontalLoss);
 };
 
-const drag = (element, event) => {
-	event.preventDefault();
-	
-	const initialPos = {
-		x: element.offsetLeft,
-		y: element.offsetTop,
-		mouseX: event.clientX,
-		mouseY: event.clientY
-	};
-
-	const handleMouseMove = (e) => {
-		element.style.left = `${initialPos.x + e.clientX - initialPos.mouseX}px`;
-		element.style.top = `${initialPos.y + e.clientY - initialPos.mouseY}px`;
-	};
-
-	const handleMouseUp = () => {
-		document.removeEventListener('mousemove', handleMouseMove);
-		document.removeEventListener('mouseup', handleMouseUp);
-	};
-
-	document.addEventListener('mousemove', handleMouseMove);
-	document.addEventListener('mouseup', handleMouseUp);
-};
-
 // 添加事件监听
 document.getElementById('demoBtn').addEventListener('click', demo);
 document.getElementById('resetBtn').addEventListener('click', () => {
 	// 停止当前动画
 	if (animationId) {
-		clearInterval(animationId);
+		cancelAnimationFrame(animationId);
 		animationId = null;
 	}
 	// 重置位置
-	$id('fall').style.cssText = 'top:50px;left:400px;';
+	ballPosition.x = 400;
+	ballPosition.y = 50;
+	// 清除画布
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	// 绘制小球
+	drawBall(ballPosition.x, ballPosition.y);
+});
+
+// 拖拽功能
+let isDragging = false;
+let dragOffset = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', (e) => {
+	const rect = canvas.getBoundingClientRect();
+	const x = e.clientX - rect.left;
+	const y = e.clientY - rect.top;
+	
+	// 检查是否点击到小球
+	if (Math.hypot(x - ballPosition.x, y - ballPosition.y) <= 10) {
+		isDragging = true;
+		dragOffset.x = x - ballPosition.x;
+		dragOffset.y = y - ballPosition.y;
+	}
+});
+
+canvas.addEventListener('mousemove', (e) => {
+	if (!isDragging) return;
+	
+	const rect = canvas.getBoundingClientRect();
+	ballPosition.x = e.clientX - rect.left - dragOffset.x;
+	ballPosition.y = e.clientY - rect.top - dragOffset.y;
+	
+	// 清除画布并重绘小球
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	drawBall(ballPosition.x, ballPosition.y);
+});
+
+canvas.addEventListener('mouseup', () => {
+	isDragging = false;
 });
 </script>
+</body>
 </html>
