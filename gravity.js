@@ -36,9 +36,10 @@ const collisionFeedback = (intensity = 1) => {
 	// 只在启用反馈时执行
 	if (!$id('feedback').checked) return;
 
-	// 震动反馈
+	// 震动反馈 - 根据强度调整震动时长
 	if ('vibrate' in navigator) {
-		navigator.vibrate(50 * intensity);
+		const vibrationTime = Math.floor(20 + intensity * 40); // 20-60ms
+		navigator.vibrate(vibrationTime);
 	}
 
 	// 声音反馈
@@ -46,15 +47,28 @@ const collisionFeedback = (intensity = 1) => {
 	if (sound) {
 		const { oscillator, gainNode } = sound;
 		try {
+			// 使用非线性映射使弱碰撞的声音更小
+			const volume = 0.01 + (intensity * intensity * 0.15); // 音量范围 0.01-0.16
+			gainNode.gain.value = volume;
+
+			// 调整频率范围，使声音不那么刺耳
+			oscillator.frequency.value = 100 + (intensity * 80); // 频率范围 100-180Hz
+			
 			oscillator.start();
-			// 50ms后停止声音
 			setTimeout(() => {
 				try {
-					oscillator.stop();
+					// 更平滑的淡出效果
+					gainNode.gain.exponentialRampToValueAtTime(
+						0.001,
+						audioContext.currentTime + 0.15
+					);
+					setTimeout(() => {
+						oscillator.stop();
+					}, 150);
 				} catch (e) {
 					console.log('Error stopping sound:', e);
 				}
-			}, 50);
+			}, 30);
 		} catch (e) {
 			console.log('Error starting sound:', e);
 		}
