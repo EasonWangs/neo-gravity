@@ -75,7 +75,7 @@ const collisionFeedback = (intensity = 1) => {
 	}
 };
 
-const shoot = (x, y, a, t) => {
+const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalLoss = "0.2") => {
 	// 如果已有动画正在运行，先停止它
 	if (animationId) {
 		clearInterval(animationId);
@@ -90,9 +90,9 @@ const shoot = (x, y, a, t) => {
 		velocityY: parseFloat(y),      // 垂直速度，正值向下，负值向上，单位：px/ms
 		gravity: parseFloat(a),        // 重力加速度，正值向下，单位：px/ms²
 		timeStep: parseInt(t),         // 时间步长，单位：ms
-		friction: 0.005,               // 底部摩擦系数，每次碰撞后的水平速度损耗
-		verticalLoss: 0.2,            // 垂直碰撞能量损失，每次碰撞后的垂直速度损耗
-		horizontalLoss: 0.2           // 水平碰撞能量损失，每次与墙壁碰撞后的水平速度损耗
+		friction: parseFloat(friction),               // 底部摩擦系数，每次碰撞后的水平速度损耗
+		verticalLoss: parseFloat(verticalLoss),      // 垂直碰撞能量损失，每次碰撞后的垂直速度损耗
+		horizontalLoss: parseFloat(horizontalLoss)   // 水平碰撞能量损失，每次与墙壁碰撞后的水平速度损耗
 	};
 
 	let position = {
