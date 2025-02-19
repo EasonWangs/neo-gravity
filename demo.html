@@ -18,14 +18,32 @@
 <p><label>纵向初速度：</label><input id="Vy" type="text" value="0" />px/ms</p>
 <p><label>重力加速度：</label><input id="a" type="text" value="0.01" />px/平方ms</p>
 <p><label>单位时间：</label><input id="t" type="text" value="10" />（记录运动的时间间隔）
+<p><label>启用反馈：</label><input id="feedback" type="checkbox" checked />（震动和声音）</p>
 <p>(摩擦，碰撞的消耗并没有按公式进行计算，纯属于杜撰，是不符合规律的，仅仅是模拟。)</p>
-<p><button type="button"  onclick="demo()">演示</button> <button type="button"  onclick="$id('fall').style.cssText = 'top:50px;left:400px;'">重置(可拖动放置)</button></p>
+<p>
+	<button type="button" id="demoBtn">演示</button>
+	<button type="button" id="resetBtn">重置(可拖动放置)</button>
+</p>
 <div id="fall" onmousedown='drag(this,event)'>o</div>
 </body>
 <script type="text/javascript">
 const $id = id => document.getElementById(id);
 
-const demo = () => {
+// 改为 var 声明以便全局访问
+var demo = () => {
+	// 确保在用户交互时创建 AudioContext
+	try {
+		if (!audioContext) {
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		}
+		// 如果 AudioContext 被挂起，则恢复它
+		if (audioContext.state === 'suspended') {
+			audioContext.resume();
+		}
+	} catch (e) {
+		console.log('Web Audio API not supported');
+	}
+
 	const params = {
 		x: $id('Vx').value,
 		y: $id('Vy').value,
@@ -58,5 +76,11 @@ const drag = (element, event) => {
 	document.addEventListener('mousemove', handleMouseMove);
 	document.addEventListener('mouseup', handleMouseUp);
 };
+
+// 添加事件监听
+document.getElementById('demoBtn').addEventListener('click', demo);
+document.getElementById('resetBtn').addEventListener('click', () => {
+	$id('fall').style.cssText = 'top:50px;left:400px;'
+});
 </script>
 </html>

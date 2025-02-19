@@ -1,4 +1,65 @@
 let animationId = null;
+let audioContext = null;
+
+// 创建碰撞音效
+const createCollisionSound = () => {
+	// 延迟创建 AudioContext 直到第一次需要时
+	if (!audioContext) {
+		try {
+			audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		} catch (e) {
+			console.log('Web Audio API not supported');
+			return null;
+		}
+	}
+
+	try {
+		const oscillator = audioContext.createOscillator();
+		const gainNode = audioContext.createGain();
+		
+		oscillator.connect(gainNode);
+		gainNode.connect(audioContext.destination);
+		
+		oscillator.type = 'sine';
+		oscillator.frequency.value = 200; // 频率
+		gainNode.gain.value = 0.1; // 音量
+		
+		return { oscillator, gainNode };
+	} catch (e) {
+		console.log('Error creating sound:', e);
+		return null;
+	}
+};
+
+// 碰撞反馈函数
+const collisionFeedback = (intensity = 1) => {
+	// 只在启用反馈时执行
+	if (!$id('feedback').checked) return;
+
+	// 震动反馈
+	if ('vibrate' in navigator) {
+		navigator.vibrate(50 * intensity);
+	}
+
+	// 声音反馈
+	const sound = createCollisionSound();
+	if (sound) {
+		const { oscillator, gainNode } = sound;
+		try {
+			oscillator.start();
+			// 50ms后停止声音
+			setTimeout(() => {
+				try {
+					oscillator.stop();
+				} catch (e) {
+					console.log('Error stopping sound:', e);
+				}
+			}, 50);
+		} catch (e) {
+			console.log('Error starting sound:', e);
+		}
+	}
+};
 
 const shoot = (x, y, a, t) => {
 	// 如果已有动画正在运行，先停止它
@@ -42,6 +103,10 @@ const shoot = (x, y, a, t) => {
 		if (position.y >= boundaries.height) {
 			position.y = boundaries.height;
 			
+			// 根据垂直速度计算碰撞强度
+			const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
+			collisionFeedback(intensity);
+			
 			// 处理水平摩擦
 			physics.velocityX = (Math.abs(physics.velocityX) - physics.friction < 0) ? 
 				0 : 
@@ -62,6 +127,10 @@ const shoot = (x, y, a, t) => {
 		// 处理左右边界碰撞
 		if (position.x < 0 || position.x > boundaries.width) {
 			position.x = position.x < 0 ? 0 : boundaries.width;
+			
+			// 根据水平速度计算碰撞强度
+			const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
+			collisionFeedback(intensity);
 			
 			const remainingSpeed = Math.abs(physics.velocityX) - physics.horizontalLoss;
 			physics.velocityX = remainingSpeed < 0 ? 
