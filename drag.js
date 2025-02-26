@@ -81,7 +81,7 @@ function handleMouseDown(e) {
     const y = e.clientY - rect.top;
     
     // 检查是否点击到小球
-    if (Math.hypot(x - ballPosition.x, y - ballPosition.y) <= 10) {
+    if (Math.hypot(x - ballPosition.x, y - ballPosition.y) <= PHYSICS_CONFIG.BALL_RADIUS) {
         isDragging = true;
         dragOffset.x = x - ballPosition.x;
         dragOffset.y = y - ballPosition.y;

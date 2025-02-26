@@ -4,6 +4,35 @@ let canvas = null;
 let ctx = null;
 let ballPosition = { x: 400, y: 50 };
 
+// 物理参数配置
+const PHYSICS_CONFIG = {
+	BALL_RADIUS: 10,            // 小球半径
+	
+	// 随机范围配置 - 使用数组表示 [最小值, 最大值]
+	RANDOM_RANGES: {
+		FRICTION: [-0.001, 0.001],     // 摩擦力随机范围
+		VERTICAL: [-0.1, 0.1],         // 垂直损耗随机范围
+		HORIZONTAL: [-0.1, 0.1]        // 水平损耗随机范围
+	}
+};
+
+// 生成随机参数的函数
+function generateRandomParam(type) {
+	const range = PHYSICS_CONFIG.RANDOM_RANGES[type.toUpperCase()];
+	if (!range) return 0;
+	
+	return range[0] + Math.random() * (range[1] - range[0]);
+}
+
+// 更新UI显示的随机参数范围
+function updateRandomRangesDisplay() {
+	const ranges = PHYSICS_CONFIG.RANDOM_RANGES;
+	
+	$id('randomFriction').value = `${ranges.FRICTION[0].toFixed(3)}-${ranges.FRICTION[1].toFixed(3)}`;
+	$id('randomVertical').value = `${ranges.VERTICAL[0].toFixed(2)}-${ranges.VERTICAL[1].toFixed(2)}`;
+	$id('randomHorizontal').value = `${ranges.HORIZONTAL[0].toFixed(2)}-${ranges.HORIZONTAL[1].toFixed(2)}`;
+}
+
 // 初始化 canvas
 function initCanvas() {
 	canvas = document.getElementById('canvas');
@@ -27,7 +56,7 @@ function resizeCanvas() {
 function drawBall(x, y) {
 	if (!ctx) return;
 	ctx.beginPath();
-	ctx.arc(x, y, 10, 0, Math.PI * 2);
+	ctx.arc(x, y, PHYSICS_CONFIG.BALL_RADIUS, 0, Math.PI * 2);
 	ctx.fillStyle = 'orange';
 	ctx.fill();
 	ctx.closePath();
@@ -107,6 +136,19 @@ const collisionFeedback = (intensity = 1) => {
 	}
 };
 
+// 添加随机变化到物理参数
+const applyRandomness = (baseValue, paramType) => {
+	if (!$id('randomEnabled').checked) {
+		return baseValue;
+	}
+	
+	// 生成随机偏移量
+	const randomOffset = generateRandomParam(paramType);
+	
+	// 将随机偏移量应用到基础值上
+	return baseValue + randomOffset;
+};
+
 const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalLoss = "0.2") => {
 	// 如果已有动画正在运行，先停止它
 	if (animationId) {
@@ -125,8 +167,8 @@ const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalL
 	};
 
 	const boundaries = {
-		width: canvas.width - 20,  // 20是小球直径
-		height: canvas.height - 20
+		width: canvas.width - PHYSICS_CONFIG.BALL_RADIUS * 2,
+		height: canvas.height - PHYSICS_CONFIG.BALL_RADIUS * 2
 	};
 
 	let lastTime = performance.now();
@@ -152,13 +194,29 @@ const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalL
 				const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
 				collisionFeedback(intensity);
 				
-				physics.velocityX = (Math.abs(physics.velocityX) - physics.friction < 0) ? 
-					0 : 
-					Math.sign(physics.velocityX) * (Math.abs(physics.velocityX) - physics.friction);
+				// 应用随机摩擦力
+				const currentFriction = applyRandomness(
+					physics.friction, 
+					'friction'
+				);
 				
-				physics.velocityY = (Math.abs(physics.velocityY) - physics.verticalLoss < 0) ? 
+				// 处理摩擦力 - 统一处理正负摩擦力
+				const newHorizontalSpeed = Math.abs(physics.velocityX) - currentFriction;
+				physics.velocityX = newHorizontalSpeed <= 0 ? 
 					0 : 
-					-(Math.abs(physics.velocityY) - physics.verticalLoss);
+					Math.sign(physics.velocityX) * newHorizontalSpeed;
+				
+				// 应用随机垂直损耗
+				const currentVerticalLoss = applyRandomness(
+					physics.verticalLoss, 
+					'vertical'
+				);
+				
+				// 处理垂直损耗 - 统一处理正负损耗
+				const newVerticalSpeed = Math.abs(physics.velocityY) - currentVerticalLoss;
+				physics.velocityY = newVerticalSpeed <= 0 ? 
+					0 : 
+					-newVerticalSpeed; // 垂直方向始终向上反弹
 
 				if (physics.velocityX === 0 && physics.velocityY === 0) {
 					cancelAnimationFrame(animationId);
@@ -175,10 +233,17 @@ const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalL
 				const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
 				collisionFeedback(intensity);
 				
-				const remainingSpeed = Math.abs(physics.velocityX) - physics.horizontalLoss;
-				physics.velocityX = remainingSpeed < 0 ? 
+				// 应用随机水平损耗
+				const currentHorizontalLoss = applyRandomness(
+					physics.horizontalLoss, 
+					'horizontal'
+				);
+				
+				// 处理水平损耗 - 统一处理正负损耗
+				const newHorizontalSpeed = Math.abs(physics.velocityX) - currentHorizontalLoss;
+				physics.velocityX = newHorizontalSpeed <= 0 ? 
 					0 : 
-					-Math.sign(physics.velocityX) * remainingSpeed;
+					-Math.sign(physics.velocityX) * newHorizontalSpeed; // 水平方向反向
 			}
 
 			// 绘制小球
