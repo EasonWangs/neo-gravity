@@ -104,5 +104,12 @@ function handleMouseUp(e) {
     if (!isDragging) return;
     isDragging = false;
     
-    shoot({})
+    // 速度放大系数，可以根据需要调整
+    const speedMultiplier = 1;
+    // 使用对象形式传递参数，将鼠标甩动的速度作为初速度
+    const params = {
+        x: (dragVelocity.x * speedMultiplier).toFixed(2),
+        y: (dragVelocity.y * speedMultiplier).toFixed(2),
+    };
+    shoot(params);
 } 
