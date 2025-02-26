@@ -2,7 +2,7 @@ let animationId = null;
 let audioContext = null;
 let canvas = null;
 let ctx = null;
-let ballPosition = { x: 400, y: 50 };
+let ballPosition = { x: 10, y: 10 };
 
 // 物理参数配置
 const PHYSICS_CONFIG = {
@@ -42,12 +42,15 @@ function generateRandomParam(type) {
 }
 
 // 初始化 canvas
-function initCanvas() {
+function initCanvas(initialBallPosition) {
 	canvas = document.getElementById('canvas');
 	if (!canvas) return;
 	
 	ctx = canvas.getContext('2d');
 	resizeCanvas();
+	
+	// 使用传入的初始位置
+	ballPosition = initialBallPosition || ballPosition;
 	
 	// 绘制初始小球
 	drawBall(ballPosition.x, ballPosition.y);
