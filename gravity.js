@@ -158,7 +158,13 @@ const applyRandomness = (baseValue, paramType) => {
 };
 
 // 在初始化物理参数时使用默认值
-function initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss) {
+function initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss, feedbackEnabled, randomEnabled) {
+	// 更新配置开关，使用缺省值
+	PHYSICS_CONFIG.FEEDBACK_ENABLED = feedbackEnabled !== undefined ? 
+		feedbackEnabled : PHYSICS_CONFIG.FEEDBACK_ENABLED;
+	PHYSICS_CONFIG.RANDOMNESS_ENABLED = randomEnabled !== undefined ? 
+		randomEnabled : PHYSICS_CONFIG.RANDOMNESS_ENABLED;
+	
 	return {
 		velocityX: parseFloat(vx || PHYSICS_CONFIG.PARAMS.VELOCITY_X),
 		velocityY: parseFloat(vy || PHYSICS_CONFIG.PARAMS.VELOCITY_Y),
@@ -178,10 +184,6 @@ function shoot(params) {
 		animationId = null;
 	}
 	
-	// 更新配置开关
-	PHYSICS_CONFIG.FEEDBACK_ENABLED = params.feedbackEnabled;
-	PHYSICS_CONFIG.RANDOMNESS_ENABLED = params.randomEnabled;
-	
 	// 初始化物理参数，使用默认值作为缺省值
 	physics = initPhysics(
 		params.x, 
@@ -190,7 +192,9 @@ function shoot(params) {
 		params.t, 
 		params.friction, 
 		params.verticalLoss, 
-		params.horizontalLoss
+		params.horizontalLoss,
+		params.feedbackEnabled,
+		params.randomEnabled
 	);
 	
 	// 清除画布
@@ -285,14 +289,3 @@ const updatePosition = (currentTime) => {
 	
 	animationId = requestAnimationFrame(updatePosition);
 };
-
-// 在适当的地方使用这些缺省值初始化UI元素
-function initUI() {
-	// ... existing code ...
-	
-	// 使用配置中的值设置UI状态，而不是直接操作DOM
-	// 这部分代码应该在demo.html或其他UI相关文件中实现
-	// 在这里只保留必要的逻辑
-	
-	// ... existing code ...
-}

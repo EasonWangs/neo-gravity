@@ -87,11 +87,10 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 		cancelAnimationFrame(animationId);
 		animationId = null;
 	}
-	// 重置位置
-	ballPosition.x = 400;
-	ballPosition.y = 50;
+	
 	// 清除画布
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	
 	// 绘制小球
 	drawBall(ballPosition.x, ballPosition.y);
 });
