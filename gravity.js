@@ -103,7 +103,7 @@ const createCollisionSound = () => {
 // 碰撞反馈函数
 const collisionFeedback = (intensity = 1) => {
 	// 只在启用反馈时执行
-	if (!$id('feedback').checked) return;
+	if (!PHYSICS_CONFIG.FEEDBACK_ENABLED) return;
 
 	// 震动反馈 - 根据强度调整震动时长
 	if ('vibrate' in navigator) {
@@ -146,7 +146,7 @@ const collisionFeedback = (intensity = 1) => {
 
 // 添加随机变化到物理参数
 const applyRandomness = (baseValue, paramType) => {
-	if (!$id('randomEnabled').checked) {
+	if (!PHYSICS_CONFIG.RANDOMNESS_ENABLED) {
 		return baseValue;
 	}
 	
@@ -170,20 +170,32 @@ function initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss) {
 	};
 }
 
-// 修改shoot函数使用initPhysics
-function shoot(vx, vy, g, t, friction, verticalLoss, horizontalLoss) {
+// 修改shoot函数使用参数对象
+function shoot(params) {
 	// 停止当前动画
 	if (animationId) {
 		cancelAnimationFrame(animationId);
 		animationId = null;
 	}
 	
+	// 更新配置开关
+	PHYSICS_CONFIG.FEEDBACK_ENABLED = params.feedbackEnabled;
+	PHYSICS_CONFIG.RANDOMNESS_ENABLED = params.randomEnabled;
+	
 	// 重置位置
 	ballPosition.x = 400;
 	ballPosition.y = 50;
 	
 	// 初始化物理参数，使用默认值作为缺省值
-	physics = initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss);
+	physics = initPhysics(
+		params.x, 
+		params.y, 
+		params.a, 
+		params.t, 
+		params.friction, 
+		params.verticalLoss, 
+		params.horizontalLoss
+	);
 	
 	// 清除画布
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -282,14 +294,9 @@ const updatePosition = (currentTime) => {
 function initUI() {
 	// ... existing code ...
 	
-	// 使用缺省值初始化反馈和随机性的选项
-	if ($id('feedbackEnabled')) {
-		$id('feedbackEnabled').checked = PHYSICS_CONFIG.FEEDBACK_ENABLED;
-	}
-	
-	if ($id('randomEnabled')) {
-		$id('randomEnabled').checked = PHYSICS_CONFIG.RANDOMNESS_ENABLED;
-	}
+	// 使用配置中的值设置UI状态，而不是直接操作DOM
+	// 这部分代码应该在demo.html或其他UI相关文件中实现
+	// 在这里只保留必要的逻辑
 	
 	// ... existing code ...
 }

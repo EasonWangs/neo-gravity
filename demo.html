@@ -72,9 +72,11 @@ var demo = () => {
 		t: $id('t').value,
 		friction: $id('friction').value,
 		verticalLoss: $id('verticalLoss').value,
-		horizontalLoss: $id('horizontalLoss').value
+		horizontalLoss: $id('horizontalLoss').value,
+		feedbackEnabled: $id('feedback').checked,
+		randomEnabled: $id('randomEnabled').checked
 	};
-	shoot(params.x, params.y, params.a, params.t, params.friction, params.verticalLoss, params.horizontalLoss);
+	shoot(params);
 };
 
 // 添加事件监听
