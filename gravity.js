@@ -8,29 +8,43 @@ let ballPosition = { x: 400, y: 50 };
 const PHYSICS_CONFIG = {
 	BALL_RADIUS: 10,            // 小球半径
 	
-	// 随机范围配置 - 使用数组表示 [最小值, 最大值]
-	RANDOM_RANGES: {
-		FRICTION: [-0.001, 0.001],     // 摩擦力随机范围
-		VERTICAL: [-0.1, 0.1],         // 垂直损耗随机范围
-		HORIZONTAL: [-0.1, 0.1]        // 水平损耗随机范围
+	// 物理参数配置
+	PARAMS: {
+		VELOCITY_X: 3,          // 横向初速度：3 px/ms
+		VELOCITY_Y: 0,          // 纵向初速度：0 px/ms
+		GRAVITY: 0.01,          // 重力加速度：0.01 px/平方ms
+		TIME_STEP: 10,          // 单位时间：10ms
+		FRICTION: {
+			DEFAULT: 0.005,     // 摩擦系数：0.005
+			RANDOM: [-0.001, 0.001]  // 摩擦力随机范围
+		},
+		VERTICAL_LOSS: {
+			DEFAULT: 0.5,       // 垂直损耗：0.5
+			RANDOM: [-0.1, 0.1] // 垂直损耗随机范围
+		},
+		HORIZONTAL_LOSS: {
+			DEFAULT: 0.5,       // 水平损耗：0.5
+			RANDOM: [-0.1, 0.1] // 水平损耗随机范围
+		}
 	}
 };
 
 // 生成随机参数的函数
 function generateRandomParam(type) {
-	const range = PHYSICS_CONFIG.RANDOM_RANGES[type.toUpperCase()];
-	if (!range) return 0;
+	const param = PHYSICS_CONFIG.PARAMS[type];
+	if (typeof param !== 'object' || !param.RANDOM) return 0;
 	
+	const range = param.RANDOM;
 	return range[0] + Math.random() * (range[1] - range[0]);
 }
 
 // 更新UI显示的随机参数范围
 function updateRandomRangesDisplay() {
-	const ranges = PHYSICS_CONFIG.RANDOM_RANGES;
+	const params = PHYSICS_CONFIG.PARAMS;
 	
-	$id('randomFriction').value = `${ranges.FRICTION[0].toFixed(3)}-${ranges.FRICTION[1].toFixed(3)}`;
-	$id('randomVertical').value = `${ranges.VERTICAL[0].toFixed(2)}-${ranges.VERTICAL[1].toFixed(2)}`;
-	$id('randomHorizontal').value = `${ranges.HORIZONTAL[0].toFixed(2)}-${ranges.HORIZONTAL[1].toFixed(2)}`;
+	$id('randomFriction').value = `${params.FRICTION.RANDOM[0].toFixed(3)}-${params.FRICTION.RANDOM[1].toFixed(3)}`;
+	$id('randomVertical').value = `${params.VERTICAL_LOSS.RANDOM[0].toFixed(2)}-${params.VERTICAL_LOSS.RANDOM[1].toFixed(2)}`;
+	$id('randomHorizontal').value = `${params.HORIZONTAL_LOSS.RANDOM[0].toFixed(2)}-${params.HORIZONTAL_LOSS.RANDOM[1].toFixed(2)}`;
 }
 
 // 初始化 canvas
@@ -149,111 +163,123 @@ const applyRandomness = (baseValue, paramType) => {
 	return baseValue + randomOffset;
 };
 
-const shoot = (x, y, a, t, friction = "0.005", verticalLoss = "0.2", horizontalLoss = "0.2") => {
-	// 如果已有动画正在运行，先停止它
+// 在初始化物理参数时使用默认值
+function initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss) {
+	return {
+		velocityX: parseFloat(vx || PHYSICS_CONFIG.PARAMS.VELOCITY_X),
+		velocityY: parseFloat(vy || PHYSICS_CONFIG.PARAMS.VELOCITY_Y),
+		gravity: parseFloat(g || PHYSICS_CONFIG.PARAMS.GRAVITY),
+		timeStep: parseFloat(t || PHYSICS_CONFIG.PARAMS.TIME_STEP),
+		friction: parseFloat(friction || PHYSICS_CONFIG.PARAMS.FRICTION.DEFAULT),
+		verticalLoss: parseFloat(verticalLoss || PHYSICS_CONFIG.PARAMS.VERTICAL_LOSS.DEFAULT),
+		horizontalLoss: parseFloat(horizontalLoss || PHYSICS_CONFIG.PARAMS.HORIZONTAL_LOSS.DEFAULT)
+	};
+}
+
+// 修改shoot函数使用initPhysics
+function shoot(vx, vy, g, t, friction, verticalLoss, horizontalLoss) {
+	// 停止当前动画
 	if (animationId) {
 		cancelAnimationFrame(animationId);
+		animationId = null;
 	}
+	
+	// 重置位置
+	ballPosition.x = 400;
+	ballPosition.y = 50;
+	
+	// 初始化物理参数，使用默认值作为缺省值
+	physics = initPhysics(vx, vy, g, t, friction, verticalLoss, horizontalLoss);
+	
+	// 清除画布
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+	
+	// 绘制小球
+	drawBall(ballPosition.x, ballPosition.y);
+	
+	// 开始动画
+	lastTime = performance.now();
+	animationId = requestAnimationFrame(updatePosition);
+}
 
-	// 初始化物理参数
-	const physics = {
-		velocityX: parseFloat(x),
-		velocityY: parseFloat(y),
-		gravity: parseFloat(a),
-		timeStep: parseInt(t),
-		friction: parseFloat(friction),
-		verticalLoss: parseFloat(verticalLoss),
-		horizontalLoss: parseFloat(horizontalLoss)
-	};
-
-	const boundaries = {
-		width: canvas.width - PHYSICS_CONFIG.BALL_RADIUS * 2,
-		height: canvas.height - PHYSICS_CONFIG.BALL_RADIUS * 2
-	};
-
-	let lastTime = performance.now();
-
-	const updatePosition = (currentTime) => {
-		const deltaTime = currentTime - lastTime;
+const updatePosition = (currentTime) => {
+	const deltaTime = currentTime - lastTime;
+	
+	if (deltaTime >= physics.timeStep) {
+		// 清除画布
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
 		
-		if (deltaTime >= physics.timeStep) {
-			// 清除画布
-			ctx.clearRect(0, 0, canvas.width, canvas.height);
-			
-			// 更新位置
-			ballPosition.x += physics.velocityX * physics.timeStep;
-			ballPosition.y += physics.velocityY * physics.timeStep;
-			
-			// 重力影响
-			physics.velocityY += physics.gravity * physics.timeStep;
+		// 更新位置
+		ballPosition.x += physics.velocityX * physics.timeStep;
+		ballPosition.y += physics.velocityY * physics.timeStep;
+		
+		// 重力影响
+		physics.velocityY += physics.gravity * physics.timeStep;
 
-			// 处理底部碰撞
-			if (ballPosition.y >= boundaries.height) {
-				ballPosition.y = boundaries.height;
-				
-				const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
-				collisionFeedback(intensity);
-				
-				// 应用随机摩擦力
-				const currentFriction = applyRandomness(
-					physics.friction, 
-					'friction'
-				);
-				
-				// 处理摩擦力 - 统一处理正负摩擦力
-				const newHorizontalSpeed = Math.abs(physics.velocityX) - currentFriction;
-				physics.velocityX = newHorizontalSpeed <= 0 ? 
-					0 : 
-					Math.sign(physics.velocityX) * newHorizontalSpeed;
-				
-				// 应用随机垂直损耗
-				const currentVerticalLoss = applyRandomness(
-					physics.verticalLoss, 
-					'vertical'
-				);
-				
-				// 处理垂直损耗 - 统一处理正负损耗
-				const newVerticalSpeed = Math.abs(physics.velocityY) - currentVerticalLoss;
-				physics.velocityY = newVerticalSpeed <= 0 ? 
-					0 : 
-					-newVerticalSpeed; // 垂直方向始终向上反弹
+		// 处理底部碰撞
+		if (ballPosition.y >= canvas.height - PHYSICS_CONFIG.BALL_RADIUS * 2) {
+			ballPosition.y = canvas.height - PHYSICS_CONFIG.BALL_RADIUS * 2;
+			
+			const intensity = Math.min(Math.abs(physics.velocityY) / 2, 1);
+			collisionFeedback(intensity);
+			
+			// 应用随机摩擦力
+			const currentFriction = applyRandomness(
+				physics.friction, 
+				'FRICTION'
+			);
+			
+			// 处理摩擦力 - 统一处理正负摩擦力
+			const newHorizontalSpeed = Math.abs(physics.velocityX) - currentFriction;
+			physics.velocityX = newHorizontalSpeed <= 0 ? 
+				0 : 
+				Math.sign(physics.velocityX) * newHorizontalSpeed;
+			
+			// 应用随机垂直损耗
+			const currentVerticalLoss = applyRandomness(
+				physics.verticalLoss, 
+				'VERTICAL_LOSS'
+			);
+			
+			// 处理垂直损耗 - 统一处理正负损耗
+			const newVerticalSpeed = Math.abs(physics.velocityY) - currentVerticalLoss;
+			physics.velocityY = newVerticalSpeed <= 0 ? 
+				0 : 
+				-newVerticalSpeed; // 垂直方向始终向上反弹
 
-				if (physics.velocityX === 0 && physics.velocityY === 0) {
-					cancelAnimationFrame(animationId);
-					// 在动画结束时绘制最后一帧
-					drawBall(ballPosition.x, ballPosition.y);
-					return;
-				}
+			if (physics.velocityX === 0 && physics.velocityY === 0) {
+				cancelAnimationFrame(animationId);
+				// 在动画结束时绘制最后一帧
+				drawBall(ballPosition.x, ballPosition.y);
+				return;
 			}
-
-			// 处理左右边界碰撞
-			if (ballPosition.x < 0 || ballPosition.x > boundaries.width) {
-				ballPosition.x = ballPosition.x < 0 ? 0 : boundaries.width;
-				
-				const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
-				collisionFeedback(intensity);
-				
-				// 应用随机水平损耗
-				const currentHorizontalLoss = applyRandomness(
-					physics.horizontalLoss, 
-					'horizontal'
-				);
-				
-				// 处理水平损耗 - 统一处理正负损耗
-				const newHorizontalSpeed = Math.abs(physics.velocityX) - currentHorizontalLoss;
-				physics.velocityX = newHorizontalSpeed <= 0 ? 
-					0 : 
-					-Math.sign(physics.velocityX) * newHorizontalSpeed; // 水平方向反向
-			}
-
-			// 绘制小球
-			drawBall(ballPosition.x, ballPosition.y);
-			
-			lastTime = currentTime;
 		}
-		
-		animationId = requestAnimationFrame(updatePosition);
-	};
 
+		// 处理左右边界碰撞
+		if (ballPosition.x < 0 || ballPosition.x > canvas.width - PHYSICS_CONFIG.BALL_RADIUS * 2) {
+			ballPosition.x = ballPosition.x < 0 ? 0 : canvas.width - PHYSICS_CONFIG.BALL_RADIUS * 2;
+			
+			const intensity = Math.min(Math.abs(physics.velocityX) / 2, 1);
+			collisionFeedback(intensity);
+			
+			// 应用随机水平损耗
+			const currentHorizontalLoss = applyRandomness(
+				physics.horizontalLoss, 
+				'HORIZONTAL_LOSS'
+			);
+			
+			// 处理水平损耗 - 统一处理正负损耗
+			const newHorizontalSpeed = Math.abs(physics.velocityX) - currentHorizontalLoss;
+			physics.velocityX = newHorizontalSpeed <= 0 ? 
+				0 : 
+				-Math.sign(physics.velocityX) * newHorizontalSpeed; // 水平方向反向
+		}
+
+		// 绘制小球
+		drawBall(ballPosition.x, ballPosition.y);
+		
+		lastTime = currentTime;
+	}
+	
 	animationId = requestAnimationFrame(updatePosition);
 };
