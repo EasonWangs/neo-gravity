@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>模拟引力环境下的撞击、摩擦、落体运动</title>
+<style type="text/css">
+	*{padding:0;margin:0;}
+	html,body{height:100%;overflow:hidden;}
+	#canvas{
+		position: absolute;
+		top: 0;
+		left: 0;
+		background: #fff;
+	}
+</style>
+<script type="text/javascript" charset="utf-8" src="gravity.js"></script>
+<script type="text/javascript" charset="utf-8" src="drag.js"></script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script type="text/javascript">
+const $id = id => document.getElementById(id);
+
+// 初始化 canvas
+initCanvas();
+// 初始化拖拽功能
+initDrag(canvas);
+</script>
+</body>
+</html>

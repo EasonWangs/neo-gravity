@@ -104,30 +104,5 @@ function handleMouseUp(e) {
     if (!isDragging) return;
     isDragging = false;
     
-    // 使用累积的速度来甩出
-    const velocityMagnitude = Math.hypot(dragVelocity.x, dragVelocity.y);
-    if (velocityMagnitude > 0.1) { // 速度足够大时才甩出
-        // 放大速度效果
-        const speedMultiplier = 2;
-        shoot(
-            (dragVelocity.x * speedMultiplier).toString(),
-            (dragVelocity.y * speedMultiplier).toString(),
-            $id('a').value,
-            $id('t').value,
-            $id('friction').value,
-            $id('verticalLoss').value,
-            $id('horizontalLoss').value
-        );
-    } else {
-        // 速度太小时给一个很小的初速度
-        shoot(
-            "0.1",
-            "0",
-            $id('a').value,
-            $id('t').value,
-            $id('friction').value,
-            $id('verticalLoss').value,
-            $id('horizontalLoss').value
-        );
-    }
+    shoot({})
 } 

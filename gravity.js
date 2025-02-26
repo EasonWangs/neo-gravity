@@ -10,7 +10,7 @@ const PHYSICS_CONFIG = {
 	
 	// 物理参数配置
 	PARAMS: {
-		VELOCITY_X: 3,          // 横向初速度：3 px/ms
+		VELOCITY_X: 0,          // 横向初速度：3 px/ms
 		VELOCITY_Y: 0,          // 纵向初速度：0 px/ms
 		GRAVITY: 0.01,          // 重力加速度：9.8 px/平方ms
 		TIME_STEP: 10,          // 单位时间：10ms
