@@ -182,10 +182,6 @@ function shoot(params) {
 	PHYSICS_CONFIG.FEEDBACK_ENABLED = params.feedbackEnabled;
 	PHYSICS_CONFIG.RANDOMNESS_ENABLED = params.randomEnabled;
 	
-	// 重置位置
-	ballPosition.x = 400;
-	ballPosition.y = 50;
-	
 	// 初始化物理参数，使用默认值作为缺省值
 	physics = initPhysics(
 		params.x, 
