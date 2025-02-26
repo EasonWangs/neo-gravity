@@ -12,21 +12,24 @@ const PHYSICS_CONFIG = {
 	PARAMS: {
 		VELOCITY_X: 3,          // 横向初速度：3 px/ms
 		VELOCITY_Y: 0,          // 纵向初速度：0 px/ms
-		GRAVITY: 0.01,          // 重力加速度：0.01 px/平方ms
+		GRAVITY: 0.01,          // 重力加速度：9.8 px/平方ms
 		TIME_STEP: 10,          // 单位时间：10ms
 		FRICTION: {
-			DEFAULT: 0.005,     // 摩擦系数：0.005
+			DEFAULT: 0.01,     // 摩擦系数：0.01
 			RANDOM: [-0.001, 0.001]  // 摩擦力随机范围
 		},
 		VERTICAL_LOSS: {
-			DEFAULT: 0.5,       // 垂直损耗：0.5
+			DEFAULT: 0.5,       // 垂直损耗：0.8
 			RANDOM: [-0.1, 0.1] // 垂直损耗随机范围
 		},
 		HORIZONTAL_LOSS: {
-			DEFAULT: 0.5,       // 水平损耗：0.5
+			DEFAULT: 0.5,       // 水平损耗：0.9
 			RANDOM: [-0.1, 0.1] // 水平损耗随机范围
 		}
-	}
+	},
+	// 添加反馈和随机性的缺省值
+	FEEDBACK_ENABLED: true,
+	RANDOMNESS_ENABLED: true
 };
 
 // 生成随机参数的函数
@@ -36,15 +39,6 @@ function generateRandomParam(type) {
 	
 	const range = param.RANDOM;
 	return range[0] + Math.random() * (range[1] - range[0]);
-}
-
-// 更新UI显示的随机参数范围
-function updateRandomRangesDisplay() {
-	const params = PHYSICS_CONFIG.PARAMS;
-	
-	$id('randomFriction').value = `${params.FRICTION.RANDOM[0].toFixed(3)}-${params.FRICTION.RANDOM[1].toFixed(3)}`;
-	$id('randomVertical').value = `${params.VERTICAL_LOSS.RANDOM[0].toFixed(2)}-${params.VERTICAL_LOSS.RANDOM[1].toFixed(2)}`;
-	$id('randomHorizontal').value = `${params.HORIZONTAL_LOSS.RANDOM[0].toFixed(2)}-${params.HORIZONTAL_LOSS.RANDOM[1].toFixed(2)}`;
 }
 
 // 初始化 canvas
@@ -283,3 +277,19 @@ const updatePosition = (currentTime) => {
 	
 	animationId = requestAnimationFrame(updatePosition);
 };
+
+// 在适当的地方使用这些缺省值初始化UI元素
+function initUI() {
+	// ... existing code ...
+	
+	// 使用缺省值初始化反馈和随机性的选项
+	if ($id('feedbackEnabled')) {
+		$id('feedbackEnabled').checked = PHYSICS_CONFIG.FEEDBACK_ENABLED;
+	}
+	
+	if ($id('randomEnabled')) {
+		$id('randomEnabled').checked = PHYSICS_CONFIG.RANDOMNESS_ENABLED;
+	}
+	
+	// ... existing code ...
+}
