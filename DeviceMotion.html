@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTML5 手机传感器演示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .sensor-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .sensor-group h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .data-label {
+            font-weight: bold;
+            color: #555;
+        }
+        .data-value {
+            font-family: monospace;
+            color: #0066cc;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            text-align: center;
+            color: #e74c3c;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        #compass {
+            width: 150px;
+            height: 150px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="white" stroke="black" stroke-width="2"/><polygon points="50,5 45,45 50,50 55,45" fill="red"/><polygon points="50,95 45,55 50,50 55,55" fill="black"/><text x="50" y="15" text-anchor="middle" font-size="8">北</text><text x="50" y="90" text-anchor="middle" font-size="8">南</text><text x="90" y="50" text-anchor="middle" font-size="8">东</text><text x="10" y="50" text-anchor="middle" font-size="8">西</text></svg>');
+            background-size: contain;
+            margin: 0 auto;
+            transform: rotate(0deg);
+            transition: transform 0.3s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HTML5 手机传感器演示</h1>
+        
+        <div id="status">请点击下方按钮启用传感器</div>
+        
+        <button id="startButton">启用传感器</button>
+        
+        <div class="sensor-group">
+            <h2>设备加速度</h2>
+            <div class="data-row">
+                <span class="data-label">X轴 (左/右):</span>
+                <span class="data-value" id="accelerationX">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Y轴 (前/后):</span>
+                <span class="data-value" id="accelerationY">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Z轴 (上/下):</span>
+                <span class="data-value" id="accelerationZ">0.00</span>
+            </div>
+        </div>
+        
+        <div class="sensor-group">
+            <h2>重力加速度</h2>
+            <div class="data-row">
+                <span class="data-label">X轴:</span>
+                <span class="data-value" id="gravityX">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Y轴:</span>
+                <span class="data-value" id="gravityY">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Z轴:</span>
+                <span class="data-value" id="gravityZ">0.00</span>
+            </div>
+        </div>
+        
+        <div class="sensor-group">
+            <h2>设备旋转</h2>
+            <div class="data-row">
+                <span class="data-label">Alpha (指南针):</span>
+                <span class="data-value" id="rotationAlpha">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Beta (前后倾斜):</span>
+                <span class="data-value" id="rotationBeta">0.00</span>
+            </div>
+            <div class="data-row">
+                <span class="data-label">Gamma (左右倾斜):</span>
+                <span class="data-value" id="rotationGamma">0.00</span>
+            </div>
+        </div>
+        
+        <div class="sensor-group">
+            <h2>指南针</h2>
+            <div id="compass"></div>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const statusElement = document.getElementById('status');
+        const compass = document.getElementById('compass');
+        
+        // 加速度元素
+        const accelerationXElement = document.getElementById('accelerationX');
+        const accelerationYElement = document.getElementById('accelerationY');
+        const accelerationZElement = document.getElementById('accelerationZ');
+        
+        // 重力元素
+        const gravityXElement = document.getElementById('gravityX');
+        const gravityYElement = document.getElementById('gravityY');
+        const gravityZElement = document.getElementById('gravityZ');
+        
+        // 旋转元素
+        const rotationAlphaElement = document.getElementById('rotationAlpha');
+        const rotationBetaElement = document.getElementById('rotationBeta');
+        const rotationGammaElement = document.getElementById('rotationGamma');
+        
+        // 格式化数字，保留两位小数
+        function formatNumber(num) {
+            return num ? num.toFixed(2) : '0.00';
+        }
+        
+        // 处理设备运动事件
+        function handleDeviceMotion(event) {
+            // 处理加速度数据
+            if (event.acceleration) {
+                accelerationXElement.textContent = formatNumber(event.acceleration.x);
+                accelerationYElement.textContent = formatNumber(event.acceleration.y);
+                accelerationZElement.textContent = formatNumber(event.acceleration.z);
+            }
+            
+            // 处理重力数据
+            if (event.accelerationIncludingGravity) {
+                gravityXElement.textContent = formatNumber(event.accelerationIncludingGravity.x);
+                gravityYElement.textContent = formatNumber(event.accelerationIncludingGravity.y);
+                gravityZElement.textContent = formatNumber(event.accelerationIncludingGravity.z);
+            }
+        }
+        
+        // 处理设备方向事件
+        function handleDeviceOrientation(event) {
+            // 处理旋转数据
+            rotationAlphaElement.textContent = formatNumber(event.alpha); // 指南针方向 (0-360)
+            rotationBetaElement.textContent = formatNumber(event.beta);   // 前后倾斜 (-180-180)
+            rotationGammaElement.textContent = formatNumber(event.gamma); // 左右倾斜 (-90-90)
+            
+            // 更新指南针旋转
+            if (event.alpha !== null) {
+                compass.style.transform = `rotate(${event.alpha}deg)`;
+            }
+        }
+        
+        // 启用传感器
+        function enableSensors() {
+            if (window.DeviceMotionEvent && window.DeviceOrientationEvent) {
+                // 检查是否需要请求权限（iOS 13+）
+                if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    DeviceMotionEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('devicemotion', handleDeviceMotion);
+                                statusElement.textContent = '设备运动传感器已启用';
+                                statusElement.style.color = '#27ae60';
+                            } else {
+                                statusElement.textContent = '设备运动传感器权限被拒绝';
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    // 非iOS设备或旧版iOS
+                    window.addEventListener('devicemotion', handleDeviceMotion);
+                    statusElement.textContent = '设备运动传感器已启用';
+                    statusElement.style.color = '#27ae60';
+                }
+                
+                // 同样检查方向传感器权限
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('deviceorientation', handleDeviceOrientation);
+                            } else {
+                                statusElement.textContent += '，但方向传感器权限被拒绝';
+                            }
+                        })
+                        .catch(console.error);
+                } else {
+                    window.addEventListener('deviceorientation', handleDeviceOrientation);
+                }
+            } else {
+                statusElement.textContent = '您的设备不支持运动或方向传感器';
+                statusElement.style.color = '#e74c3c';
+            }
+        }
+        
+        // 按钮点击事件
+        startButton.addEventListener('click', enableSensors);
+    </script>
+</body>
+</html>
